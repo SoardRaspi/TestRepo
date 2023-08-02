@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import cv2 as cv
 import matplotlib.pyplot as plt
@@ -27,6 +29,8 @@ perp = {"N": "E", "NE": "SE", "E": "S", "SE": "SW", "S": "E", "SW": "SE", "W": "
 basic = ["N", "E", "S", "W"]
 juncs = {}
 
+ANS = {}
+
 resolution = 1  # decides the resolution with which the hand movements will happen unless interrupted by direction change
 intensity_threshold = 127
 ans = ""
@@ -53,7 +57,6 @@ image_final_test = np.float32(image_final_test)
 image_final = np.array(image_final_t)
 
 maintainer_matrix = [[255 for i in range(len(image_final[0]))] for ii in range(len(image_final))]
-
 
 # start1 = timer()
 
@@ -1213,6 +1216,614 @@ def group_numbers(numbers, max_difference=7):
     return groups
 
 
+# def get_dirs_from_coords(_, __, ___, X, Y, PREV):
+#     # st_plot = time.time()
+#     cs = plt.contour(_, __, ___, colors='black')
+#     ans_f = []
+#     direction_temp_count = {}
+#     count_contours_dict = {}
+#
+#     mid_data = []
+#     mid_dirs = []
+#
+#     # img = np.zeros((100, 100), dtype=np.uint8)
+#     # img[25:75, 25:75] = 255
+#     # img[40:60, 40:60] = 0
+#     #
+#     # plt.figure("img")
+#     # plt.imshow(img)
+#
+#     # find the contours of the array
+#     # contours, hierarchy = cv.findContours(np.array(___), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+#
+#     # print the number of contours found
+#     # print(f"Number of contours found: {len(contours)}")
+#
+#     # contours, hierarchy = cv.findContours(___, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+#     # plt.figure("contours from opencv")
+#     # plt.imshow(contours)
+#
+#     # print("contours form opencv:", contours)
+#
+#     # end_plot = time.time()
+#
+#     # print("time for plotting:", st_plot - end_plot)
+#
+#     for i in range(len(cs.collections)):
+#
+#         flag = 0
+#         index_path = 0
+#
+#         coords = {}
+#
+#         # print("something:", len(cs.collections))
+#
+#         count_contours = 0
+#         v = None
+#
+#         while flag != 1:
+#             try:
+#                 # p = cs.collections[-3].get_paths()[index_path]
+#                 p = cs.collections[i].get_paths()[index_path]
+#                 # p = cs.collections[1].get_paths()[index_path]
+#                 print("len(p) [X, Y]:", len(p), [X, Y])
+#
+#                 # plt.clf()
+#                 v = p.vertices
+#                 x = v[:, 0]
+#                 y = v[:, 1]
+#
+#                 coords[index_path] = [[x[i], y[i]] for i in range(len(x))]
+#
+#                 # plt.figure(str([X, Y]))
+#                 plt.scatter(x, y)
+#
+#                 count_contours += 1
+#                 # print("x, y:", x, y)
+#             except:
+#                 flag = 1
+#
+#             index_path += 1
+#
+#         # print("coords_path:", coords, [X, Y])
+#
+#         # print("[X, Y] from get_dirs_from_coords:", [X, Y])
+#
+#         x1, y1 = [X, X], [Y - 6, Y + 6]
+#         x2, y2 = [X - 6, X + 6], [Y, Y]
+#         plt.plot(x1, y1, x2, y2, marker='o')
+#
+#         final_ans = {}
+#         ans = []
+#
+#         angle_new_format = None
+#
+#         degs = []
+#         degs_where = []
+#         direction = []
+#
+#         direction_temp = None
+#
+#         for ii in range(len(coords)):
+#             c = coords[ii]
+#
+#             # coords = COORDS[2]
+#             # coords = COORDS[1]
+#             # c = coords[0]
+#
+#             # print("length of COORDS:", len(COORDS))
+#
+#             # slopes = []
+#             # degs = []
+#             # degs_where = []
+#             # direction = []
+#
+#             for i in range(1, len(c)):
+#                 curr = c[i]
+#                 prev = c[i - 1]
+#
+#                 delta_x = curr[0] - prev[0]
+#                 delta_y = curr[1] - prev[1]
+#                 theta_radians = np.arctan2(delta_y, delta_x)
+#
+#                 angle_new_format = theta_radians / np.pi
+#                 degs.append(theta_radians)
+#
+#                 # if (curr[0] != X) and (prev[0] != X) and (curr[1] != Y) and (prev[1] != Y):
+#                 if True or ((curr[0] != X) and (prev[0] != X) and (curr[1] != Y) and (prev[1] != Y)):
+#                     direction_pointing = None
+#
+#                     if ((angle_new_format >= 0.125) and (angle_new_format <= 0.375)) or \
+#                             ((angle_new_format >= -0.875) and (angle_new_format <= -0.625)):
+#                         direction_pointing = 'SE'
+#                     elif ((angle_new_format >= 0.375) and (angle_new_format < 0.625)) or \
+#                             ((angle_new_format > -0.625) and (angle_new_format < -0.375)):
+#                         direction_pointing = 'S'
+#                     elif ((angle_new_format >= 0.625) and (angle_new_format <= 0.875)) or \
+#                             ((angle_new_format >= -0.375) and (angle_new_format <= -0.125)):
+#                         direction_pointing = 'SW'
+#                     elif ((angle_new_format >= 0) and (angle_new_format < 0.125)) or \
+#                             ((angle_new_format >= -1) and (angle_new_format < -0.875)) or \
+#                             ((angle_new_format > 0.875) and (angle_new_format <= 1)) or \
+#                             ((angle_new_format > -0.125) and (angle_new_format < 0)):
+#                         # ((angle_new_format < -0.125) and (angle_new_format > 0)):
+#                         direction_pointing = 'E'
+#
+#                     # print('direction_pointing before:', direction_pointing)
+#
+#                     if direction_pointing == 'SE':
+#                         if (curr[1] <= Y) or (prev[1] <= Y):
+#                             direction_pointing = 'NW'
+#                     elif direction_pointing == 'S':
+#                         if (curr[1] <= Y) or (prev[1] <= Y):
+#                             direction_pointing = 'N'
+#                     elif direction_pointing == 'SW':
+#                         if (curr[1] <= Y) or (prev[1] <= Y):
+#                             direction_pointing = 'NE'
+#                     elif direction_pointing == 'E':
+#                         if (curr[0] <= X) or (prev[0] <= X):
+#                             direction_pointing = 'W'
+#
+#                     # print('direction_pointing after:', direction_pointing)
+#
+#                     direction.append(direction_pointing)
+#                 else:
+#                     direction.append(None)
+#
+#             print("coords:", coords, "inside get_dirs [X, Y]:", len(coords), [X, Y])
+#             print("direction at:", [X, Y], direction, "inside get_dirs [X, Y]:", len(coords), [X, Y])
+#
+#             mid_data.append(direction)
+#
+#             direction_temp = [item for item in direction if item]
+#
+#             final_ans[ii] = list(np.unique(np.array(direction_temp)))
+#
+#         # print("direction_temp [X, Y]:", direction_temp, [X, Y])
+#         # print("final_ans [X, Y]:", final_ans, [X, Y])
+#
+#         if direction_temp:
+#             # # print("direction_temp at:", [X, Y], direction_temp)
+#             # direction_temp_t = [direction_temp[0]]
+#             #
+#             # for i in range(1, len(direction_temp) - 1):
+#             #     if direction_temp[i] != direction_temp[i - 1]:
+#             #         direction_temp_t.append(direction_temp[i])
+#             #
+#             # direction_temp.append(direction_temp[-1])
+#             # direction_temp = direction_temp_t
+#             #
+#             # # print("direction_temp trimmed at:", [X, Y], [*set(direction_temp)])
+#             # print("direction_temp trimmed at:", [X, Y], direction_temp)
+#             #
+#             # # direction_temp = [*set(direction_temp)]
+#             #
+#             # dir_tbr = []
+#             #
+#             # for i in range(1, len(direction_temp) - 1):
+#             #     item_curr = direction_temp[i]
+#             #
+#             #     if len(item_curr) == 2:
+#             #         # if i != 0:
+#             #         if (direction_temp[i - 1] in mid[item_curr]) and (direction_temp[i + 1] in mid[item_curr]):
+#             #             dir_tbr.append(i)
+#             #
+#             # direction_temp_t = []
+#             # for i in range(len(direction_temp)):
+#             #     if i not in dir_tbr:
+#             #         direction_temp_t.append(direction_temp[i])
+#             #
+#             # direction_temp = direction_temp_t
+#             # direction_temp = [*set(direction_temp)]
+#             #
+#             # print("direction_temp trimmed and operated on at:", [X, Y], direction_temp)
+#
+#             # direction_temp_count = {}
+#             for item in direction_temp:
+#                 if item not in direction_temp_count:
+#                     direction_temp_count[item] = 1
+#                 else:
+#                     direction_temp_count[item] += 1
+#
+#             # print("direction_temp_count [X, Y]:", direction_temp_count, [X, Y])
+#             # direction_temp_count_array = [direction_temp_count[key] for key in direction_temp_count]
+#             # direction_temp_count_mean = sum(direction_temp_count_array) / len(direction_temp_count_array)
+#             # direction_temp_count_sd = np.std(direction_temp_count_array)
+#             # direction_temp_count_rms = np.sqrt(
+#             #     sum((item ** 2) for item in direction_temp_count_array) / len(direction_temp_count_array))
+#             # direction_temp_count_cms = (sum((item ** 3) for item in direction_temp_count_array) / len(
+#             #     direction_temp_count_array)) ** (1 / 3)
+#             # # direction_temp_count_skew = (sum(((item - direction_temp_count_mean) ** 3) for item in direction_temp_count_array) / (len(direction_temp_count_array) * (direction_temp_count_sd ** 3)))
+#             #
+#             # print("direction_temp_count_mean [X, Y]:", direction_temp_count_mean, direction_temp_count_sd,
+#             #       direction_temp_count_rms, direction_temp_count_cms, [X, Y])
+#
+#             final_ans['loop'] = final_ans[0]
+#             print("coords after final_ans [X, Y]:", coords)
+#
+#             for t in range(1, len(coords)):
+#                 dirs_from_prev = final_ans[t - 1]
+#                 dirs_from_curr = final_ans[t]
+#
+#                 temp = dirs_from_prev.copy()
+#                 for item in dirs_from_curr:
+#                     temp.append(item)
+#
+#                 for item in temp:
+#                     if item not in ans:
+#                         if temp.count(item) > 1:
+#                             ans.append(item)
+#
+#             print("ans [X, Y]:", ans, [X, Y])
+#
+#             if not ans:
+#                 # print("v in get_dirs_from_coords():", [X, Y], v)
+#
+#                 for vi in range(1, len(v)):
+#                     prev = v[vi - 1]
+#                     curr = v[vi]
+#
+#                     delta_x = curr[0] - prev[0]
+#                     delta_y = curr[1] - prev[1]
+#                     theta_radians = np.arctan2(delta_y, delta_x)
+#
+#                     angle_new_format = theta_radians / np.pi
+#                     degs.append(theta_radians)
+#
+#                     # if (curr[0] != X) and (prev[0] != X) and (curr[1] != Y) and (prev[1] != Y):
+#                     if True or ((curr[0] != X) and (prev[0] != X) and (curr[1] != Y) and (prev[1] != Y)):
+#                         direction_pointing = None
+#
+#                         if ((angle_new_format >= 0.125) and (angle_new_format <= 0.375)) or \
+#                                 ((angle_new_format >= -0.875) and (angle_new_format <= -0.625)):
+#                             direction_pointing = 'SE'
+#                         elif ((angle_new_format >= 0.375) and (angle_new_format < 0.625)) or \
+#                                 ((angle_new_format > -0.625) and (angle_new_format < -0.375)):
+#                             direction_pointing = 'S'
+#                         elif ((angle_new_format >= 0.625) and (angle_new_format <= 0.875)) or \
+#                                 ((angle_new_format >= -0.375) and (angle_new_format <= -0.125)):
+#                             direction_pointing = 'SW'
+#                         elif ((angle_new_format >= 0) and (angle_new_format < 0.125)) or \
+#                                 ((angle_new_format >= -1) and (angle_new_format < -0.875)) or \
+#                                 ((angle_new_format > 0.875) and (angle_new_format <= 1)) or \
+#                                 ((angle_new_format > -0.125) and (angle_new_format < 0)):
+#                             # ((angle_new_format < -0.125) and (angle_new_format > 0)):
+#                             direction_pointing = 'E'
+#
+#                         # print('direction_pointing before:', direction_pointing)
+#
+#                         if direction_pointing == 'SE':
+#                             if (curr[1] <= Y) or (prev[1] <= Y):
+#                                 direction_pointing = 'NW'
+#                         elif direction_pointing == 'S':
+#                             if (curr[1] <= Y) or (prev[1] <= Y):
+#                                 direction_pointing = 'N'
+#                         elif direction_pointing == 'SW':
+#                             if (curr[1] <= Y) or (prev[1] <= Y):
+#                                 direction_pointing = 'NE'
+#                         elif direction_pointing == 'E':
+#                             if (curr[0] <= X) or (prev[0] <= X):
+#                                 direction_pointing = 'W'
+#
+#                         # print('direction_pointing after:', direction_pointing)
+#
+#                         direction.append(direction_pointing)
+#                     else:
+#                         direction.append(None)
+#
+#                     # print("coords [X, Y]:", coords, [X, Y])
+#                     # print("direction [X, Y]:", direction, [X, Y])
+#
+#                 directions_extreme = {}
+#                 total_extreme = 0
+#
+#                 for direc in direction:
+#                     if direc:
+#                         if direc not in directions_extreme:
+#                             directions_extreme[direc] = 1
+#                         else:
+#                             directions_extreme[direc] += 1
+#
+#                     total_extreme += 1
+#
+#                 print("directions_extreme [X, Y]:", directions_extreme, [X, Y])
+#
+#                 arr_extreme = []
+#                 for direc in directions_extreme:
+#                     arr_extreme.append(directions_extreme[direc] / total_extreme)
+#                     # arr_extreme.append(directions_extreme[direc])
+#
+#                 std_extreme = np.std(arr_extreme)
+#
+#                 print("direction if not ans:", directions_extreme, arr_extreme, std_extreme)
+#
+#                 ans = [key for key in directions_extreme]
+#
+#                 if PREV:
+#                     if opp[PREV] in ans:
+#                         ans.remove(opp[PREV])
+#
+#             dirs_from_prev = final_ans[len(coords) - 1]
+#             dirs_from_curr = final_ans['loop']
+#
+#             temp = dirs_from_prev.copy()
+#             for item in dirs_from_curr:
+#                 temp.append(item)
+#
+#             for item in temp:
+#                 if item not in ans:
+#                     if temp.count(item) > 1:
+#                         ans.append(item)
+#
+#             if PREV:
+#                 if opp[PREV] in ans:
+#                     ans.remove(opp[PREV])
+#
+#             print("ans if not ans [X, Y]:", ans, [X, Y])
+#
+#             # print("ans data at using contour angles:", ans, [X, Y])
+#
+#             # if not ans:
+#             #     # print("v in get_dirs_from_coords():", [X, Y], v)
+#             #
+#             #     for vi in range(1, len(v)):
+#             #         prev = v[vi - 1]
+#             #         curr = v[vi]
+#             #
+#             #         delta_x = curr[0] - prev[0]
+#             #         delta_y = curr[1] - prev[1]
+#             #         theta_radians = np.arctan2(delta_y, delta_x)
+#             #
+#             #         angle_new_format = theta_radians / np.pi
+#             #         degs.append(theta_radians)
+#             #
+#             #         # if (curr[0] != X) and (prev[0] != X) and (curr[1] != Y) and (prev[1] != Y):
+#             #         if True or ((curr[0] != X) and (prev[0] != X) and (curr[1] != Y) and (prev[1] != Y)):
+#             #             direction_pointing = None
+#             #
+#             #             if ((angle_new_format >= 0.125) and (angle_new_format <= 0.375)) or \
+#             #                     ((angle_new_format >= -0.875) and (angle_new_format <= -0.625)):
+#             #                 direction_pointing = 'SE'
+#             #             elif ((angle_new_format >= 0.375) and (angle_new_format < 0.625)) or \
+#             #                     ((angle_new_format > -0.625) and (angle_new_format < -0.375)):
+#             #                 direction_pointing = 'S'
+#             #             elif ((angle_new_format >= 0.625) and (angle_new_format <= 0.875)) or \
+#             #                     ((angle_new_format >= -0.375) and (angle_new_format <= -0.125)):
+#             #                 direction_pointing = 'SW'
+#             #             elif ((angle_new_format >= 0) and (angle_new_format < 0.125)) or \
+#             #                     ((angle_new_format >= -1) and (angle_new_format < -0.875)) or \
+#             #                     ((angle_new_format > 0.875) and (angle_new_format <= 1)) or \
+#             #                     ((angle_new_format > -0.125) and (angle_new_format < 0)):
+#             # ((angle_new_format < -0.125) and (angle_new_format > 0)):
+#             #                 direction_pointing = 'E'
+#             #
+#             #             # print('direction_pointing before:', direction_pointing)
+#             #
+#             #             if direction_pointing == 'SE':
+#             #                 if (curr[1] <= Y) or (prev[1] <= Y):
+#             #                     direction_pointing = 'NW'
+#             #             elif direction_pointing == 'S':
+#             #                 if (curr[1] <= Y) or (prev[1] <= Y):
+#             #                     direction_pointing = 'N'
+#             #             elif direction_pointing == 'SW':
+#             #                 if (curr[1] <= Y) or (prev[1] <= Y):
+#             #                     direction_pointing = 'NE'
+#             #             elif direction_pointing == 'E':
+#             #                 if (curr[0] <= X) or (prev[0] <= X):
+#             #                     direction_pointing = 'W'
+#             #
+#             #             # print('direction_pointing after:', direction_pointing)
+#             #
+#             #             direction.append(direction_pointing)
+#             #         else:
+#             #             direction.append(None)
+#             #
+#             #         print("coords [X, Y]:", coords, [X, Y])
+#             #         print("direction [X, Y]:", direction, [X, Y])
+#             #
+#             #     directions_extreme = {}
+#             #     total_extreme = 0
+#             #
+#             #     for direc in direction:
+#             #         if direc:
+#             #             if direc not in directions_extreme:
+#             #                 directions_extreme[direc] = 1
+#             #             else:
+#             #                 directions_extreme[direc] += 1
+#             #
+#             #         total_extreme += 1
+#             #
+#             #     print("directions_extreme [X, Y]:", directions_extreme, [X, Y])
+#             #
+#             #     arr_extreme = []
+#             #     for direc in directions_extreme:
+#             #         arr_extreme.append(directions_extreme[direc] / total_extreme)
+#             #         # arr_extreme.append(directions_extreme[direc])
+#             #
+#             #     std_extreme = np.std(arr_extreme)
+#             #
+#             #     # dir_arr_extreme = {}
+#             #     # i = 0
+#             #     #
+#             #     # for item in directions_extreme:
+#             #     #     temp_k = arr_extreme[i]
+#             #     #
+#             #     #     if temp_k not in dir_arr_extreme:
+#             #     #         dir_arr_extreme[temp_k] = [item]
+#             #     #     else:
+#             #     #         dir_arr_extreme[temp_k].append(item)
+#             #     #
+#             #     #     i += 1
+#             #     #
+#             #     # arr_extreme = [*set(arr_extreme)]
+#             #
+#             #     # directions_extreme = group_numbers(directions_extreme)
+#             #     #
+#             #     # max_index = 0
+#             #     # max_value = 0
+#             #     # for i in range(len(directions_extreme)):
+#             #     #     temp = directions_extreme[i]
+#             #     #
+#             #     #     if max(temp) > max_value:
+#             #     #         max_index = i
+#             #     #         max_value = max(temp)
+#             #     #
+#             #     # directions_extreme = directions_extreme[max_index]
+#             #
+#             #     print("direction if not ans:", directions_extreme, arr_extreme, std_extreme)
+#             #     # print("direction if not ans:", directions_extreme, arr_extreme)
+#             #
+#             #     # max_in_arr_extreme = max(arr_extreme)
+#             #     # arr_extreme = group_numbers(arr_extreme, 0.1)
+#             #     # probably_req_directions = []
+#             #     #
+#             #     # f = 0
+#             #     # for arr_inner in arr_extreme:
+#             #     #     if f == 0:
+#             #     #         if max_in_arr_extreme in arr_inner:
+#             #     #             arr_extreme = arr_inner
+#             #     #             f = 1
+#             #     #
+#             #     # for item in arr_extreme:
+#             #     #     probably_req_directions.append(dir_arr_extreme[item])
+#             #     #
+#             #     # print("direction if not ans:", directions_extreme, arr_extreme, probably_req_directions, [X, Y])
+#             #
+#             #     ans = [key for key in directions_extreme]
+#             #
+#             #     if PREV:
+#             #         if opp[PREV] in ans:
+#             #             ans.remove(opp[PREV])
+#
+#             # print("ans data at using vertex angles:", ans, [X, Y])
+#
+#             # temp = [item for item in direction if item]
+#             #
+#             # final_ans[ii] = list(np.unique(np.array(temp)))
+#             #
+#             # # plt.figure("v at [X, Y]" + str([X, Y]))
+#             # # plt.imshow(v)
+#             #
+#             # final_ans['loop'] = final_ans[0]
+#             #
+#             # for t in range(1, len(coords)):
+#             #     dirs_from_prev = final_ans[t - 1]
+#             #     dirs_from_curr = final_ans[t]
+#             #
+#             #     temp = dirs_from_prev.copy()
+#             #     for item in dirs_from_curr:
+#             #         temp.append(item)
+#             #
+#             #     for item in temp:
+#             #         if item not in ans:
+#             #             if temp.count(item) > 1:
+#             #                 ans.append(item)
+#             #
+#             # dirs_from_prev = final_ans[len(coords) - 1]
+#             # dirs_from_curr = final_ans['loop']
+#             #
+#             # temp = dirs_from_prev.copy()
+#             # for item in dirs_from_curr:
+#             #     temp.append(item)
+#             #
+#             # for item in temp:
+#             #     if item not in ans:
+#             #         if temp.count(item) > 1:
+#             #             ans.append(item)
+#             #
+#             # print("ans inside if not ans before removing PREV:", ans)
+#             #
+#             # if PREV:
+#             #     if opp[PREV] in ans:
+#             #         ans.remove(opp[PREV])
+#             #
+#             # print("ans inside if not ans after removing PREV:", ans)
+#
+#             if not ans:
+#                 print("still not ans at:", [X, Y])
+#
+#             ans_f.append(ans)
+#             # return ans, PREV, count_contours, angle_new_format
+#
+#         else:
+#             ans_f.append(None)
+#
+#         if count_contours not in count_contours_dict:
+#             count_contours_dict[count_contours] = 1
+#
+#         else:
+#             count_contours_dict[count_contours] += 1
+#
+#     print("direction_temp_count [X, Y]:", direction_temp_count, [X, Y])
+#     direction_temp_count_array = [direction_temp_count[key] for key in direction_temp_count]
+#     direction_temp_count_mean = sum(direction_temp_count_array) / len(direction_temp_count_array)
+#     # direction_temp_count_sd = np.std(direction_temp_count_array)
+#     # direction_temp_count_rms = np.sqrt(
+#     #     sum((item ** 2) for item in direction_temp_count_array) / len(direction_temp_count_array))
+#     # direction_temp_count_cms = (sum((item ** 3) for item in direction_temp_count_array) / len(
+#     #     direction_temp_count_array)) ** (1 / 3)
+#     # # direction_temp_count_skew = (sum(((item - direction_temp_count_mean) ** 3) for item in direction_temp_count_array) / (len(direction_temp_count_array) * (direction_temp_count_sd ** 3)))
+#     #
+#     # print("direction_temp_count_mean [X, Y]:", direction_temp_count_mean, direction_temp_count_sd,
+#     #       direction_temp_count_rms, direction_temp_count_cms, [X, Y])
+#
+#     direction_temp_count_t = {}
+#     for key in direction_temp_count:
+#         if direction_temp_count[key] > direction_temp_count_mean:
+#             direction_temp_count_t[key] = direction_temp_count[key]
+#
+#     direction_temp_count = direction_temp_count_t
+#     del direction_temp_count_t
+#
+#     print("direction_temp_count [X, Y] operated on:", direction_temp_count, [X, Y])
+#     print("ans_f in get_dirs_from_coords() at:", [X, Y], ans_f)
+#
+#     print("count_contours_dict at [X, Y]:", [X, Y], count_contours_dict)
+#
+#     max_count_contours = 0
+#     for key in count_contours_dict:
+#         if count_contours_dict[key] > max_count_contours:
+#             max_count_contours = count_contours_dict[key]
+#
+#     ans = [key for key in direction_temp_count]
+#
+#     # for i in range(len(mid_data)):
+#     #     list_of_directions_t = [item for item in mid_data[i] if item in ans]
+#     #     # list_of_directions_t = [item for item in mid_data[i] if True]
+#     #
+#     #     mid_data[i] = list_of_directions_t
+#     #
+#     #     list_of_directions_tt = [mid_data[i][0]]
+#     #
+#     #     for ii in range(1, len(mid_data[i])):
+#     #         list_of_directions_tt.append(mid_data[i][ii]) if mid_data[i][ii] != mid_data[i][ii - 1] else None
+#     #
+#     #     mid_data[i] = list_of_directions_tt
+#     #
+#     # print("mid_data in get_dirs_from_coords() at:", [X, Y], mid_data)
+#     #
+#     # # ans = []
+#     #
+#     # for arr in mid_data:
+#     #     for i in range(1, len(arr) - 1):
+#     #         prev = arr[i - 1]
+#     #         curr = arr[i]
+#     #         next = arr[i + 1]
+#     #
+#     #         if (curr in fc_nxt[prev]) and (next in fc_nxt[curr]) and (prev not in mid_dirs) and (next not in mid_dirs):
+#     #             mid_dirs.append(curr) if curr not in mid_dirs else None
+#     #
+#     #     pass
+#     #
+#     # for mid_dir in mid_dirs:
+#     #     ans.remove(mid_dir)
+#
+#     # ans = find_mid(ans)
+#
+#     # print("finalest data from get_dirs_from_coords at:", [X, Y], ans, PREV, max_count_contours)
+#
+#     return ans, PREV, max_count_contours, None
+
 def get_dirs_from_coords(_, __, ___, X, Y, PREV):
     # st_plot = time.time()
     cs = plt.contour(_, __, ___, colors='black')
@@ -1220,31 +1831,7 @@ def get_dirs_from_coords(_, __, ___, X, Y, PREV):
     direction_temp_count = {}
     count_contours_dict = {}
 
-    mid_data = []
-    mid_dirs = []
-
-    # img = np.zeros((100, 100), dtype=np.uint8)
-    # img[25:75, 25:75] = 255
-    # img[40:60, 40:60] = 0
-    #
-    # plt.figure("img")
-    # plt.imshow(img)
-
-    # find the contours of the array
-    # contours, hierarchy = cv.findContours(np.array(___), cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-
-    # print the number of contours found
-    # print(f"Number of contours found: {len(contours)}")
-
-    # contours, hierarchy = cv.findContours(___, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-    # plt.figure("contours from opencv")
-    # plt.imshow(contours)
-
-    # print("contours form opencv:", contours)
-
-    # end_plot = time.time()
-
-    # print("time for plotting:", st_plot - end_plot)
+    end_dir_coords = {}
 
     for i in range(len(cs.collections)):
 
@@ -1363,14 +1950,26 @@ def get_dirs_from_coords(_, __, ___, X, Y, PREV):
 
                     # print('direction_pointing after:', direction_pointing)
 
+                    if i == 1:
+                        if direction_pointing not in end_dir_coords:
+                            end_dir_coords[direction_pointing] = [[[round(prev[0], 0), round(prev[1], 0)], delta_y, delta_x]]
+
+                        else:
+                            end_dir_coords[direction_pointing].append([[round(prev[0], 0), round(prev[1], 0)], delta_y, delta_x])
+
+                    if i == len(coords):
+                        if direction_pointing not in end_dir_coords:
+                            end_dir_coords[direction_pointing] = [[[round(curr[0], 0), round(curr[1], 0)], delta_y, delta_x]]
+
+                        else:
+                            end_dir_coords[direction_pointing].append([[round(curr[0], 0), round(curr[1], 0)], delta_y, delta_x])
+
                     direction.append(direction_pointing)
                 else:
                     direction.append(None)
 
             print("coords:", coords, "inside get_dirs [X, Y]:", len(coords), [X, Y])
             print("direction at:", [X, Y], direction, "inside get_dirs [X, Y]:", len(coords), [X, Y])
-
-            mid_data.append(direction)
 
             direction_temp = [item for item in direction if item]
 
@@ -1380,60 +1979,11 @@ def get_dirs_from_coords(_, __, ___, X, Y, PREV):
         # print("final_ans [X, Y]:", final_ans, [X, Y])
 
         if direction_temp:
-            # # print("direction_temp at:", [X, Y], direction_temp)
-            # direction_temp_t = [direction_temp[0]]
-            #
-            # for i in range(1, len(direction_temp) - 1):
-            #     if direction_temp[i] != direction_temp[i - 1]:
-            #         direction_temp_t.append(direction_temp[i])
-            #
-            # direction_temp.append(direction_temp[-1])
-            # direction_temp = direction_temp_t
-            #
-            # # print("direction_temp trimmed at:", [X, Y], [*set(direction_temp)])
-            # print("direction_temp trimmed at:", [X, Y], direction_temp)
-            #
-            # # direction_temp = [*set(direction_temp)]
-            #
-            # dir_tbr = []
-            #
-            # for i in range(1, len(direction_temp) - 1):
-            #     item_curr = direction_temp[i]
-            #
-            #     if len(item_curr) == 2:
-            #         # if i != 0:
-            #         if (direction_temp[i - 1] in mid[item_curr]) and (direction_temp[i + 1] in mid[item_curr]):
-            #             dir_tbr.append(i)
-            #
-            # direction_temp_t = []
-            # for i in range(len(direction_temp)):
-            #     if i not in dir_tbr:
-            #         direction_temp_t.append(direction_temp[i])
-            #
-            # direction_temp = direction_temp_t
-            # direction_temp = [*set(direction_temp)]
-            #
-            # print("direction_temp trimmed and operated on at:", [X, Y], direction_temp)
-
-            # direction_temp_count = {}
             for item in direction_temp:
                 if item not in direction_temp_count:
                     direction_temp_count[item] = 1
                 else:
                     direction_temp_count[item] += 1
-
-            # print("direction_temp_count [X, Y]:", direction_temp_count, [X, Y])
-            # direction_temp_count_array = [direction_temp_count[key] for key in direction_temp_count]
-            # direction_temp_count_mean = sum(direction_temp_count_array) / len(direction_temp_count_array)
-            # direction_temp_count_sd = np.std(direction_temp_count_array)
-            # direction_temp_count_rms = np.sqrt(
-            #     sum((item ** 2) for item in direction_temp_count_array) / len(direction_temp_count_array))
-            # direction_temp_count_cms = (sum((item ** 3) for item in direction_temp_count_array) / len(
-            #     direction_temp_count_array)) ** (1 / 3)
-            # # direction_temp_count_skew = (sum(((item - direction_temp_count_mean) ** 3) for item in direction_temp_count_array) / (len(direction_temp_count_array) * (direction_temp_count_sd ** 3)))
-            #
-            # print("direction_temp_count_mean [X, Y]:", direction_temp_count_mean, direction_temp_count_sd,
-            #       direction_temp_count_rms, direction_temp_count_cms, [X, Y])
 
             final_ans['loop'] = final_ans[0]
             print("coords after final_ans [X, Y]:", coords)
@@ -1558,184 +2108,6 @@ def get_dirs_from_coords(_, __, ___, X, Y, PREV):
 
             print("ans if not ans [X, Y]:", ans, [X, Y])
 
-            # print("ans data at using contour angles:", ans, [X, Y])
-
-            # if not ans:
-            #     # print("v in get_dirs_from_coords():", [X, Y], v)
-            #
-            #     for vi in range(1, len(v)):
-            #         prev = v[vi - 1]
-            #         curr = v[vi]
-            #
-            #         delta_x = curr[0] - prev[0]
-            #         delta_y = curr[1] - prev[1]
-            #         theta_radians = np.arctan2(delta_y, delta_x)
-            #
-            #         angle_new_format = theta_radians / np.pi
-            #         degs.append(theta_radians)
-            #
-            #         # if (curr[0] != X) and (prev[0] != X) and (curr[1] != Y) and (prev[1] != Y):
-            #         if True or ((curr[0] != X) and (prev[0] != X) and (curr[1] != Y) and (prev[1] != Y)):
-            #             direction_pointing = None
-            #
-            #             if ((angle_new_format >= 0.125) and (angle_new_format <= 0.375)) or \
-            #                     ((angle_new_format >= -0.875) and (angle_new_format <= -0.625)):
-            #                 direction_pointing = 'SE'
-            #             elif ((angle_new_format >= 0.375) and (angle_new_format < 0.625)) or \
-            #                     ((angle_new_format > -0.625) and (angle_new_format < -0.375)):
-            #                 direction_pointing = 'S'
-            #             elif ((angle_new_format >= 0.625) and (angle_new_format <= 0.875)) or \
-            #                     ((angle_new_format >= -0.375) and (angle_new_format <= -0.125)):
-            #                 direction_pointing = 'SW'
-            #             elif ((angle_new_format >= 0) and (angle_new_format < 0.125)) or \
-            #                     ((angle_new_format >= -1) and (angle_new_format < -0.875)) or \
-            #                     ((angle_new_format > 0.875) and (angle_new_format <= 1)) or \
-            #                     ((angle_new_format > -0.125) and (angle_new_format < 0)):
-            # ((angle_new_format < -0.125) and (angle_new_format > 0)):
-            #                 direction_pointing = 'E'
-            #
-            #             # print('direction_pointing before:', direction_pointing)
-            #
-            #             if direction_pointing == 'SE':
-            #                 if (curr[1] <= Y) or (prev[1] <= Y):
-            #                     direction_pointing = 'NW'
-            #             elif direction_pointing == 'S':
-            #                 if (curr[1] <= Y) or (prev[1] <= Y):
-            #                     direction_pointing = 'N'
-            #             elif direction_pointing == 'SW':
-            #                 if (curr[1] <= Y) or (prev[1] <= Y):
-            #                     direction_pointing = 'NE'
-            #             elif direction_pointing == 'E':
-            #                 if (curr[0] <= X) or (prev[0] <= X):
-            #                     direction_pointing = 'W'
-            #
-            #             # print('direction_pointing after:', direction_pointing)
-            #
-            #             direction.append(direction_pointing)
-            #         else:
-            #             direction.append(None)
-            #
-            #         print("coords [X, Y]:", coords, [X, Y])
-            #         print("direction [X, Y]:", direction, [X, Y])
-            #
-            #     directions_extreme = {}
-            #     total_extreme = 0
-            #
-            #     for direc in direction:
-            #         if direc:
-            #             if direc not in directions_extreme:
-            #                 directions_extreme[direc] = 1
-            #             else:
-            #                 directions_extreme[direc] += 1
-            #
-            #         total_extreme += 1
-            #
-            #     print("directions_extreme [X, Y]:", directions_extreme, [X, Y])
-            #
-            #     arr_extreme = []
-            #     for direc in directions_extreme:
-            #         arr_extreme.append(directions_extreme[direc] / total_extreme)
-            #         # arr_extreme.append(directions_extreme[direc])
-            #
-            #     std_extreme = np.std(arr_extreme)
-            #
-            #     # dir_arr_extreme = {}
-            #     # i = 0
-            #     #
-            #     # for item in directions_extreme:
-            #     #     temp_k = arr_extreme[i]
-            #     #
-            #     #     if temp_k not in dir_arr_extreme:
-            #     #         dir_arr_extreme[temp_k] = [item]
-            #     #     else:
-            #     #         dir_arr_extreme[temp_k].append(item)
-            #     #
-            #     #     i += 1
-            #     #
-            #     # arr_extreme = [*set(arr_extreme)]
-            #
-            #     # directions_extreme = group_numbers(directions_extreme)
-            #     #
-            #     # max_index = 0
-            #     # max_value = 0
-            #     # for i in range(len(directions_extreme)):
-            #     #     temp = directions_extreme[i]
-            #     #
-            #     #     if max(temp) > max_value:
-            #     #         max_index = i
-            #     #         max_value = max(temp)
-            #     #
-            #     # directions_extreme = directions_extreme[max_index]
-            #
-            #     print("direction if not ans:", directions_extreme, arr_extreme, std_extreme)
-            #     # print("direction if not ans:", directions_extreme, arr_extreme)
-            #
-            #     # max_in_arr_extreme = max(arr_extreme)
-            #     # arr_extreme = group_numbers(arr_extreme, 0.1)
-            #     # probably_req_directions = []
-            #     #
-            #     # f = 0
-            #     # for arr_inner in arr_extreme:
-            #     #     if f == 0:
-            #     #         if max_in_arr_extreme in arr_inner:
-            #     #             arr_extreme = arr_inner
-            #     #             f = 1
-            #     #
-            #     # for item in arr_extreme:
-            #     #     probably_req_directions.append(dir_arr_extreme[item])
-            #     #
-            #     # print("direction if not ans:", directions_extreme, arr_extreme, probably_req_directions, [X, Y])
-            #
-            #     ans = [key for key in directions_extreme]
-            #
-            #     if PREV:
-            #         if opp[PREV] in ans:
-            #             ans.remove(opp[PREV])
-
-            # print("ans data at using vertex angles:", ans, [X, Y])
-
-            # temp = [item for item in direction if item]
-            #
-            # final_ans[ii] = list(np.unique(np.array(temp)))
-            #
-            # # plt.figure("v at [X, Y]" + str([X, Y]))
-            # # plt.imshow(v)
-            #
-            # final_ans['loop'] = final_ans[0]
-            #
-            # for t in range(1, len(coords)):
-            #     dirs_from_prev = final_ans[t - 1]
-            #     dirs_from_curr = final_ans[t]
-            #
-            #     temp = dirs_from_prev.copy()
-            #     for item in dirs_from_curr:
-            #         temp.append(item)
-            #
-            #     for item in temp:
-            #         if item not in ans:
-            #             if temp.count(item) > 1:
-            #                 ans.append(item)
-            #
-            # dirs_from_prev = final_ans[len(coords) - 1]
-            # dirs_from_curr = final_ans['loop']
-            #
-            # temp = dirs_from_prev.copy()
-            # for item in dirs_from_curr:
-            #     temp.append(item)
-            #
-            # for item in temp:
-            #     if item not in ans:
-            #         if temp.count(item) > 1:
-            #             ans.append(item)
-            #
-            # print("ans inside if not ans before removing PREV:", ans)
-            #
-            # if PREV:
-            #     if opp[PREV] in ans:
-            #         ans.remove(opp[PREV])
-            #
-            # print("ans inside if not ans after removing PREV:", ans)
-
             if not ans:
                 print("still not ans at:", [X, Y])
 
@@ -1784,40 +2156,30 @@ def get_dirs_from_coords(_, __, ___, X, Y, PREV):
 
     ans = [key for key in direction_temp_count]
 
-    # for i in range(len(mid_data)):
-    #     list_of_directions_t = [item for item in mid_data[i] if item in ans]
-    #     # list_of_directions_t = [item for item in mid_data[i] if True]
-    #
-    #     mid_data[i] = list_of_directions_t
-    #
-    #     list_of_directions_tt = [mid_data[i][0]]
-    #
-    #     for ii in range(1, len(mid_data[i])):
-    #         list_of_directions_tt.append(mid_data[i][ii]) if mid_data[i][ii] != mid_data[i][ii - 1] else None
-    #
-    #     mid_data[i] = list_of_directions_tt
-    #
-    # print("mid_data in get_dirs_from_coords() at:", [X, Y], mid_data)
-    #
-    # # ans = []
-    #
-    # for arr in mid_data:
-    #     for i in range(1, len(arr) - 1):
-    #         prev = arr[i - 1]
-    #         curr = arr[i]
-    #         next = arr[i + 1]
-    #
-    #         if (curr in fc_nxt[prev]) and (next in fc_nxt[curr]) and (prev not in mid_dirs) and (next not in mid_dirs):
-    #             mid_dirs.append(curr) if curr not in mid_dirs else None
-    #
-    #     pass
-    #
-    # for mid_dir in mid_dirs:
-    #     ans.remove(mid_dir)
+    end_dir_coords_t = {}
 
-    # ans = find_mid(ans)
+    for dir_key in end_dir_coords:
+        if dir_key in ans:
+            end_dir_coords_t[dir_key] = end_dir_coords[dir_key]
 
-    # print("finalest data from get_dirs_from_coords at:", [X, Y], ans, PREV, max_count_contours)
+    end_dir_coords = end_dir_coords_t
+    end_dir_coords_tt = {}
+    
+    for dir_key in end_dir_coords:
+        temp_arr = end_dir_coords[dir_key]
+        coord_max, dy_max, dx_max = [X, Y], 0, 0
+        
+        for coord, dy, dx in temp_arr:
+            if np.linalg.norm(np.array([X, Y]) - np.array(coord)) \
+                    > np.linalg.norm(np.array([X, Y]) - np.array(coord_max)):
+
+                coord_max, dy_max, dx_max = coord, dy, dx
+
+        end_dir_coords_tt[dir_key] = [coord_max, dy_max, dx_max]
+
+    end_dir_coords = end_dir_coords_tt
+
+    print("end_dir_coords in get_dirs_from_coords:", [X, Y], end_dir_coords)
 
     return ans, PREV, max_count_contours, None
 
@@ -2737,6 +3099,15 @@ def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV, PREV_COORDS=None):
     elif not PREV:
         final_QS = Q1 + Q2 + Q3 + Q4
 
+    # for x, y, _ in final_QS:
+    #     if maintainer_matrix[y][x] == "v":
+    #         maintainer_matrix[CY][CX] = "v"
+    #
+    #         # for xx, yy, __ in final_QS:
+    #         #     maintainer_matrix[yy][xx] = "v"
+    #
+    #         return None, None, None, None
+
     for X, Y, VAL in final_QS:
         if flag_curr_Harris == False:
             val_mm = maintainer_matrix[Y][X]
@@ -2789,7 +3160,7 @@ def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV, PREV_COORDS=None):
                         if curr[0] <= CX:
                             direction_pointing = 'W'
 
-                    return None, None, direction_pointing, coords_for_COI[index_mm]
+                    return None, 'angle', direction_pointing, coords_for_COI[index_mm]
 
     # for i in range(len(vals)):
     #     wmean_x += (vals[i] * x[i])
@@ -3042,23 +3413,28 @@ def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV, PREV_COORDS=None):
     if True:
         print("points_possible_fQS from dirLR:", [CX, CY], PREV, points_possible_fQS, direction_list_temp_fQS)
 
-        for i in range(len(direction_list_temp_fQS)):
-            direction = direction_list_temp_fQS[i]
-            if PREV and (direction != opp[PREV]):
-                final_direction_fQS.append(direction)
+        # if len(points_possible_fQS) != 0:
+        if True:
+            for i in range(len(direction_list_temp_fQS)):
+                direction = direction_list_temp_fQS[i]
+                if PREV and (direction != opp[PREV]):
+                    final_direction_fQS.append(direction)
 
-                final_point_fQS.append(find_max_perp(points_possible_fQS[i], beta_bar_fQS, IMG_F, LIMIT))
-                # final_point_fQS.append(points_possible_fQS[i])
+                    final_point_fQS.append(find_max_perp(points_possible_fQS[i], beta_bar_fQS, IMG_F, LIMIT))
+                    # final_point_fQS.append(points_possible_fQS[i])
 
-            elif not PREV:
-                final_direction_fQS = direction_list_temp_fQS
-                # final_point_fQS = points_possible_fQS
-                final_point_fQS = []
+                elif not PREV:
+                    final_direction_fQS = direction_list_temp_fQS
+                    # final_point_fQS = points_possible_fQS
+                    final_point_fQS = []
 
-                for point in points_possible_fQS:
-                    final_point_fQS.append(find_max_perp(point, beta_bar_fQS, IMG_F, LIMIT))
+                    for point in points_possible_fQS:
+                        final_point_fQS.append(find_max_perp(point, beta_bar_fQS, IMG_F, LIMIT))
 
-    print("final data from dirLR at fQS:", [CX, CY], final_direction_fQS, final_point_fQS, beta_bar_fQS)
+            print("final data from dirLR at fQS:", [CX, CY], final_direction_fQS, final_point_fQS, beta_bar_fQS)
+
+        # else:
+        #     return beta_bar_fQS, angle_fQS, None, find_max_perp([CX, CY], beta_bar_fQS, IMG_F, LIMIT)
 
     # ----------------------------------------------
 
@@ -3109,7 +3485,17 @@ def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV, PREV_COORDS=None):
         final_direction_fQS = final_direction_fQS_tc
         final_point_fQS = final_point_fQS_tc
 
+    # for i in range(len(final_point_fQS)):
+    #     final_point_fQS[i] = find_max_perp(final_point_fQS[i], beta_bar_fQS, IMG_F, LIMIT)
+
     # ðððððððððððððððððððððððððððððððððððððððððððððð
+
+    # ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
+
+    for x, y in final_point_fQS:
+        maintainer_matrix[y][x] = 0
+
+    # ƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒƒ
 
     end_dirLR = timer()
     print("time taken for dirLR_ß:", end_dirLR - start_dirLR)
@@ -3613,6 +3999,10 @@ def mainFunction2(X, Y, PREV, DIRECTIONS, POINT_NEXT=None, prev_coords=None):
 
     print(Fore.GREEN + "ans_ans_ans:", [X, Y], PREV, DIRECTIONS, Style.RESET_ALL)
 
+    temp_str = str(X) + ", " + str(Y)
+
+    ANS[temp_str] = DIRECTIONS
+
     if len(DIRECTIONS) == 0:
         flag_terminal_coord = False
 
@@ -3635,56 +4025,72 @@ def mainFunction2(X, Y, PREV, DIRECTIONS, POINT_NEXT=None, prev_coords=None):
 
         # mainFunction2(points_testing[0][0], points_testing[0][1], DIRECTIONS[0], [directions_testing[0]])
 
-        if beta_bar_testing:
-            index = None
-            for i in range(len(directions_testing)):
-                if PREV and (directions_testing[i] == opp[PREV]):
-                    index = i
-                    break
+        # if angle_testing:
+        if True:
+            if beta_bar_testing:
+                index = None
+                for i in range(len(directions_testing)):
+                    if PREV and (directions_testing[i] == opp[PREV]):
+                        index = i
+                        break
 
-            if index is not None:
-                directions_testing.remove(directions_testing[index])
-                points_testing.remove(points_testing[index])
+                if index is not None:
+                    directions_testing.remove(directions_testing[index])
+                    points_testing.remove(points_testing[index])
 
-            # mainFunction2(points_testing[0][0], points_testing[0][1], DIRECTIONS[0], [directions_testing[0]])
+                # mainFunction2(points_testing[0][0], points_testing[0][1], DIRECTIONS[0], [directions_testing[0]])
 
-            if len(directions_testing) > 1:
-                print("len(directions_testing) > 1 some error occurred in dirLR at:", [X, Y], directions_testing)
+                if len(directions_testing) > 1:
+                    print("len(directions_testing) > 1 some error occurred in dirLR at:", [X, Y], directions_testing)
 
-            elif len(directions_testing) == 1:
-                mainFunction2(points_testing[0][0], points_testing[0][1], DIRECTIONS[0], [directions_testing[0]], prev_coords=[X, Y])
+                elif len(directions_testing) == 1:
+                    mainFunction2(points_testing[0][0], points_testing[0][1], DIRECTIONS[0], [directions_testing[0]], prev_coords=[X, Y])
+
+                else:
+                    print("len(directions_testing) == 0 some error occurred in dirLR at:", [X, Y], points_testing)
+                    # print("relocated point at:", [X, Y], "is:", find_max_perp([X, Y], -0.9664187145904831, image_final, 100))
+
+                    X_Reloc, Y_Reloc = find_max_perp([X, Y], beta_bar_testing, image_final, 100)
+                    print("relocated point at:", [X, Y], "is:", [X_Reloc, Y_Reloc])
+
+                    beta_bar_testing, angle_testing, directions_testing, points_testing = \
+                        dirLR_β(image_final, X_Reloc, Y_Reloc, 27, 100, PREV, PREV_COORDS=prev_coords)
+
+                    mainFunction2(points_testing[0][0], points_testing[0][1], DIRECTIONS[0], [directions_testing[0]], prev_coords=[X, Y])
 
             else:
-                print("len(directions_testing) == 0 some error occurred in dirLR at:", [X, Y])
+                _, __, ___, X1, Y1 = grapher_3D(13, image_final, points_testing[0], points_testing[1])
+                directions, pp, len_conts, angle = get_dirs_from_coords(_, __, ___, X1, Y1, None)
 
-        else:
-            _, __, ___, X1, Y1 = grapher_3D(13, image_final, points_testing[0], points_testing[1])
-            directions, pp, len_conts, angle = get_dirs_from_coords(_, __, ___, X1, Y1, None)
+                if PREV and (opp[PREV] in directions):
+                    directions.remove(opp[PREV])
 
-            if PREV and (opp[PREV] in directions):
-                directions.remove(opp[PREV])
+                print("multiple directions here at:", points_testing, directions)
 
-            print("multiple directions here at:", points_testing, directions)
+                for i in range(len(directions)):
+                    try:
+                        Y_Temp, X_Temp = kernel_operator(directions[i], Y1, X1,
+                                                         getstep(directions[i], X1, Y1, dict_for_coords))
 
-            for i in range(len(directions)):
-                try:
-                    Y_Temp, X_Temp = kernel_operator(directions[i], Y1, X1,
-                                                     getstep(directions[i], X1, Y1, dict_for_coords))
+                        print("data before applying dirLR_β at:", [X_Temp, Y_Temp], [X1, Y1], directions[i], "at harris:", points_testing)
 
-                    print("data before applying dirLR_β at:", [X_Temp, Y_Temp], [X1, Y1], directions[i])
+                        # Y_Temp, X_Temp = kernel_operator(directions[i], points_testing[1], points_testing[0],
+                        #                                  getstep(directions[i], points_testing[1], points_testing[0], dict_for_coords))
+                        #
+                        # print("data before applying dirLR_β at:", [X_Temp, Y_Temp], [X1, Y1], directions[i])
 
-                    # beta_bar_testing, angle_testing, directions_testing, points_testing = \
-                    #     dirLR(image_final, X_Temp, Y_Temp, 13, 100, directions[i])
-                    beta_bar_testing, angle_testing, directions_testing, points_testing = \
-                        dirLR_β(image_final, X_Temp, Y_Temp, 27, 100, directions[i], PREV_COORDS=prev_coords)
+                        # beta_bar_testing, angle_testing, directions_testing, points_testing = \
+                        #     dirLR(image_final, X_Temp, Y_Temp, 13, 100, directions[i])
+                        beta_bar_testing, angle_testing, directions_testing, points_testing = \
+                            dirLR_β(image_final, X_Temp, Y_Temp, 27, 100, directions[i], PREV_COORDS=prev_coords)
 
-                    print("data inside for loop at:", [X_Temp, Y_Temp], [X, Y], directions_testing, points_testing, directions[i],
-                          opp[directions[i]] if directions[i] is not None else "None")
+                        print("data inside for loop at:", [X_Temp, Y_Temp], [X, Y], directions_testing, points_testing, directions[i],
+                              opp[directions[i]] if directions[i] is not None else "None")
 
-                    mainFunction2(X_Temp, Y_Temp, directions[i], [directions_testing[0]], prev_coords=[X, Y])
+                        mainFunction2(X_Temp, Y_Temp, directions[i], [directions_testing[0]], prev_coords=[X, Y])
 
-                except Exception as e:
-                    print("some error occurred at:", points_testing, [X1, Y1], e)
+                    except Exception as e:
+                        print("some error occurred at:", points_testing, [X1, Y1], e)
     else:
         pass
 
@@ -3712,6 +4118,7 @@ for k in coords_for_COI:
 
 _, __, ___, X1, Y1 = grapher_3D(13, image_final, XO, YO)
 directions, pp, ____, angle = get_dirs_from_coords(_, __, ___, X1, Y1, None)
+
 beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR(image_final, X1, Y1, 13, 100, None)
 
 print("before starting:", [XO, YO], [X1, Y1], directions, direction_testing, point_testing)
@@ -3746,6 +4153,7 @@ print("time taken for mainFunction2:", end2 - start2)
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 749, 268, 27, 100, "S")
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 748, 271, 27, 100, "SW")
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 521, 183, 27, 100, "NE")
+# beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 727, 325, 27, 100, "SW")
 
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 502, 237, 27, 100, "NE")
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR(image_final, 502, 237, 13, 100, None)
@@ -3777,7 +4185,7 @@ print("custom data:", find_max_perp([725, 323], -0.9664187145904831, image_final
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR(image_final, 502, 225, 27, 127, None)
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR(image_final, 503, 232, 27, 127, None)
 
-# print("custom starting:", [747, 257], direction_testing, point_testing)
+# print("custom starting:", [725, 323], direction_testing, point_testing)
 
 
 
@@ -3841,9 +4249,17 @@ end = timer()
 print("time taken for program to run:", end - start)
 print("time taken for terminal loop to run:", end_terminal - start_terminal)
 
+for y in range(len(maintainer_matrix)):
+    for x in range(len(maintainer_matrix[0])):
+        if type(maintainer_matrix[y][x]) == str:
+            maintainer_matrix[y][x] = 0
+
+# print("ANS:", ANS)
+# print("coords_for_COI:", coords_for_COI)
+
 # print("mm:", maintainer_matrix)
-# plt.figure("maintainer_matrix")
-# plt.imshow(maintainer_matrix)
+plt.figure("maintainer_matrix")
+plt.imshow(maintainer_matrix)
 
 plt.show()
 
