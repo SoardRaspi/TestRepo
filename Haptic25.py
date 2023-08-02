@@ -18,6 +18,8 @@ dir_dis = {"N": np.array([0, -1]), "NE": np.array([+1, -1]), "E": np.array([+1, 
 dict_bool = {0: "N", 1: "NE", 2: "E", 3: "SE", 4: "S", 5: "SW", 6: "W", 7: "NW"}
 dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
 opp = {"N": "S", "NE": "SW", "E": "W", "SE": "NW", "S": "N", "SW": "NE", "W": "E", "NW": "SE"}
+opp2 = {"N": ["S", "SW", "SE"], "NE": ["W", "SW", "S"], "E": ["W", "NW", "SW"], "SE": ["N", "W", "NW"],
+        "S": ["N", "NE", "NW"], "SW": ["N", "E", "NE"], "W": ["NE", "E", "SE"], "NW": ["S", "E", "SE"]}
 mid = {"NE": ["W", "N"], "NW": ["E", "N"], "SE": ["W", "S"], "SW": ["E", "S"]}
 fc_nxt = {"NE": ["E", "N"], "NW": ["W", "N"], "SE": ["E", "S"], "SW": ["W", "S"],
           "E": ["NE", "SE"], "S": ["SE", "SW"], "W": ["SW", "NW"], "N": ["NW", "NE"]}
@@ -2627,7 +2629,7 @@ def dirLR(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV=None):
     # return beta_bar, angle, direction, None
     return beta_bar, angle, final_direction, final_point
 
-def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV):
+def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV, PREV_COORDS=None):
     start_dirLR = timer()
 
     step = (KER_SIZE - 1) // 2
@@ -2806,7 +2808,7 @@ def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV):
     ymean_fQS = wmean_y_fQS / sum(item[2] for item in final_QS)
 
     # beta_bar_num, beta_bar_denom = 0, 0
-    beta_bar_num_fQS, beta_bar_denom_fQS = 0, 0
+    beta_bar_num_fQS, beta_bar_denom_fQS, beta_bar_denom_fQS_d = 0, 0, 0
 
     # for i in range(len(vals)):
     #     beta_bar_num += ((x[i] - xmean) * (y[i] - ymean))
@@ -2817,6 +2819,8 @@ def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV):
         beta_bar_num_fQS += ((x - xmean_fQS) * (y - ymean_fQS))
     for x, y, val in final_QS:
         beta_bar_denom_fQS += ((x - xmean_fQS) ** 2)
+    for x, y, val in final_QS:
+        beta_bar_denom_fQS_d += ((y - ymean_fQS) ** 2)
 
     # beta_bar = beta_bar_num / beta_bar_denom
     # angle = np.arctan2(beta_bar_num, beta_bar_denom) / np.pi
@@ -2824,7 +2828,11 @@ def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV):
     beta_bar_fQS = beta_bar_num_fQS / beta_bar_denom_fQS
     angle_fQS = np.arctan2(beta_bar_num_fQS, beta_bar_denom_fQS) / np.pi
 
-    print("beta_bar related data in dirLR_ß:", beta_bar_fQS, beta_bar_num_fQS, beta_bar_denom_fQS, xmean_fQS, ymean_fQS)
+    # beta_bar_fQS_d = beta_bar_denom_fQS_d / beta_bar_num_fQS
+    # angle_fQS_d = np.arctan2(beta_bar_denom_fQS_d, beta_bar_num_fQS) / np.pi
+
+    print("beta_bar related data in dirLR_ß:", [CX, CY], beta_bar_fQS, beta_bar_num_fQS, beta_bar_denom_fQS, xmean_fQS, ymean_fQS, angle_fQS)
+    # print("beta_bar_d related data in dirLR_ß:", [CX, CY], beta_bar_fQS_d, beta_bar_num_fQS, beta_bar_denom_fQS_d, xmean_fQS, angle_fQS_d)
 
     points_possible = []
     points_possible_fQS = []
@@ -2836,7 +2844,72 @@ def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV):
     #     beta_bar = 10e-10
 
     if beta_bar_fQS == 0:
-        beta_bar_fQS = 10e-10
+        beta_bar_fQS = 10e-7
+
+    direction_list_temp_fQS = []
+    direction_list_coord_fQS = []
+
+    direction_general_fQS = None
+
+    if ((angle_fQS >= 0.125) and (angle_fQS <= 0.375)) or \
+            ((angle_fQS >= -0.875) and (angle_fQS <= -0.625)):
+        direction_general_fQS = 'SE'
+    elif ((angle_fQS >= 0.375) and (angle_fQS < 0.625)) or \
+            ((angle_fQS > -0.625) and (angle_fQS < -0.375)):
+        direction_general_fQS = 'S'
+    elif ((angle_fQS >= 0.625) and (angle_fQS <= 0.875)) or \
+            ((angle_fQS >= -0.375) and (angle_fQS <= -0.125)):
+        direction_general_fQS = 'SW'
+    elif ((angle_fQS >= 0) and (angle_fQS < 0.125)) or \
+            ((angle_fQS >= -1) and (angle_fQS < -0.875)) or \
+            ((angle_fQS > 0.875) and (angle_fQS <= 1)) or \
+            ((angle_fQS > -0.125) and (angle_fQS < 0)):
+        # ((angle < -0.125) and (angle > 0)):
+
+        direction_general_fQS = 'E'
+
+    if direction_general_fQS == 'E':
+        beta_bar_fQS_perp = (-1) / beta_bar_fQS
+        max_dist_point = [CX, CY]
+
+        # for px, py in points_possible_fQS:
+        for px, py, _ in final_QS:
+            if (IMG_F[py][px] < LIMIT) and (np.linalg.norm(np.array([CX, CY]) - np.array([px, py])) >
+                                            np.linalg.norm(np.array([CX, CY]) - np.array(max_dist_point))):
+                max_dist_point = [px, py]
+
+        a_l, b_l, c_l = beta_bar_fQS, -1, (beta_bar_fQS * CX) - CY
+        d_l = abs(((a_l * max_dist_point[0]) + (b_l * max_dist_point[1]) - c_l)) / (np.sqrt((a_l ** 2) + (b_l ** 2)))
+
+        a_pl, b_pl, c_pl = beta_bar_fQS_perp, -1, (beta_bar_fQS_perp * CX) - CY
+        d_pl = abs(((a_pl * max_dist_point[0]) + (b_pl * max_dist_point[1]) - c_pl)) / (
+            np.sqrt((a_pl ** 2) + (b_pl ** 2)))
+
+        print("max_dist_point at:", [CX, CY], max_dist_point, beta_bar_fQS, beta_bar_fQS_perp)
+        print("d_l and d_pl data at:", [CX, CY], d_l, d_pl)
+
+        if d_pl < d_l:
+            beta_bar_fQS = beta_bar_fQS_perp
+            angle_fQS = np.arctan2((-1) * beta_bar_denom_fQS, beta_bar_num_fQS) / np.pi
+
+            if ((angle_fQS >= 0.125) and (angle_fQS <= 0.375)) or \
+                    ((angle_fQS >= -0.875) and (angle_fQS <= -0.625)):
+                direction_general_fQS = 'SE'
+            elif ((angle_fQS >= 0.375) and (angle_fQS < 0.625)) or \
+                    ((angle_fQS > -0.625) and (angle_fQS < -0.375)):
+                direction_general_fQS = 'S'
+            elif ((angle_fQS >= 0.625) and (angle_fQS <= 0.875)) or \
+                    ((angle_fQS >= -0.375) and (angle_fQS <= -0.125)):
+                direction_general_fQS = 'SW'
+            elif ((angle_fQS >= 0) and (angle_fQS < 0.125)) or \
+                    ((angle_fQS >= -1) and (angle_fQS < -0.875)) or \
+                    ((angle_fQS > 0.875) and (angle_fQS <= 1)) or \
+                    ((angle_fQS > -0.125) and (angle_fQS < 0)):
+                # ((angle < -0.125) and (angle > 0)):
+
+                direction_general_fQS = 'E'
+
+            print("correction applied at:", [CX, CY], direction_general_fQS)
 
     if True:
         for x, y, _ in final_QS:
@@ -2863,28 +2936,6 @@ def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV):
 
     print("points_possible in dirLR:", [CX, CY], points_possible)
     print("points_possible in dirLR fQS:", [CX, CY], points_possible_fQS)
-
-    direction_list_temp_fQS = []
-    direction_list_coord_fQS = []
-
-    direction_general_fQS = None
-
-    if ((angle_fQS >= 0.125) and (angle_fQS <= 0.375)) or \
-            ((angle_fQS >= -0.875) and (angle_fQS <= -0.625)):
-        direction_general_fQS = 'SE'
-    elif ((angle_fQS >= 0.375) and (angle_fQS < 0.625)) or \
-            ((angle_fQS > -0.625) and (angle_fQS < -0.375)):
-        direction_general_fQS = 'S'
-    elif ((angle_fQS >= 0.625) and (angle_fQS <= 0.875)) or \
-            ((angle_fQS >= -0.375) and (angle_fQS <= -0.125)):
-        direction_general_fQS = 'SW'
-    elif ((angle_fQS >= 0) and (angle_fQS < 0.125)) or \
-            ((angle_fQS >= -1) and (angle_fQS < -0.875)) or \
-            ((angle_fQS > 0.875) and (angle_fQS <= 1)) or \
-            ((angle_fQS > -0.125) and (angle_fQS < 0)):
-        # ((angle < -0.125) and (angle > 0)):
-
-        direction_general_fQS = 'E'
 
     if True:
         # if PREV:
@@ -3011,24 +3062,54 @@ def dirLR_β(IMG_F, CX, CY, KER_SIZE, LIMIT, PREV):
 
     # ----------------------------------------------
 
-    # ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+    # # ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+    #
+    # for dp in values_coord:
+    #     if dp not in final_point_fQS:
+    #         maintainer_matrix[dp[1]][dp[0]] = "d"
+    #
+    # final_point_t = []
+    # final_direction_fQS_t = []
+    #
+    # for fp_x, fp_y in final_point_fQS:
+    #     if maintainer_matrix[fp_y][fp_x] != "d":
+    #         final_point_t.append([fp_x, fp_y])
+    #         final_direction_fQS_t.append(final_direction_fQS[final_point_fQS.index([fp_x, fp_y])])
+    #
+    # final_point_fQS = final_point_t
+    # final_direction_fQS = final_direction_fQS_t
+    #
+    # # ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
 
-    for dp in values_coord:
-        if dp not in final_point_fQS:
-            maintainer_matrix[dp[1]][dp[0]] = "d"
+    # ðððððððððððððððððððððððððððððððððððððððððððððð
 
-    final_point_t = []
-    final_direction_fQS_t = []
+    final_direction_fQS_t, final_point_fQS_t = [], []
+    final_direction_fQS_tc, final_point_fQS_tc = [], []
 
-    for fp_x, fp_y in final_point_fQS:
-        if maintainer_matrix[fp_y][fp_x] != "d":
-            final_point_t.append([fp_x, fp_y])
-            final_direction_fQS_t.append(final_direction_fQS[final_point_fQS.index([fp_x, fp_y])])
+    if PREV:
+        for i in range(len(final_direction_fQS)):
+            if PREV not in opp2[final_direction_fQS[i]]:
+                final_direction_fQS_t.append(final_direction_fQS[i])
+                final_point_fQS_t.append(final_point_fQS[i])
 
-    final_point_fQS = final_point_t
-    final_direction_fQS = final_direction_fQS_t
+        final_direction_fQS = final_direction_fQS_t
+        final_point_fQS = final_point_fQS_t
 
-    # ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+    print("PREV_COORDS data from dirLR_ß at:", [CX, CY], PREV_COORDS)
+
+    if PREV_COORDS:
+        for i in range(len(final_direction_fQS)):
+            coord = final_point_fQS[i]
+
+            if np.linalg.norm(np.array(coord) - np.array(PREV_COORDS)) > \
+                np.linalg.norm(np.array([CX, CY]) - np.array(PREV_COORDS)):
+                final_direction_fQS_tc.append(final_direction_fQS[i])
+                final_point_fQS_tc.append(coord)
+
+        final_direction_fQS = final_direction_fQS_tc
+        final_point_fQS = final_point_fQS_tc
+
+    # ðððððððððððððððððððððððððððððððððððððððððððððð
 
     end_dirLR = timer()
     print("time taken for dirLR_ß:", end_dirLR - start_dirLR)
@@ -3526,7 +3607,7 @@ plt.imshow(image_final)
 #         # print("ans:", ans, "end of an ans segment", [X, Y], directions)
 #         ans_final.append(ans)
 
-def mainFunction2(X, Y, PREV, DIRECTIONS, POINT_NEXT=None):
+def mainFunction2(X, Y, PREV, DIRECTIONS, POINT_NEXT=None, prev_coords=None):
     if PREV and opp[PREV] in DIRECTIONS:
         DIRECTIONS.remove(opp[PREV])
 
@@ -3547,7 +3628,8 @@ def mainFunction2(X, Y, PREV, DIRECTIONS, POINT_NEXT=None):
 
     elif len(DIRECTIONS) == 1:
         # beta_bar_testing, angle_testing, directions_testing, points_testing = dirLR(image_final, X, Y, 13, 100, PREV)
-        beta_bar_testing, angle_testing, directions_testing, points_testing = dirLR_β(image_final, X, Y, 27, 100, PREV)
+        beta_bar_testing, angle_testing, directions_testing, points_testing = dirLR_β(image_final, X, Y, 27, 100, PREV,
+                                                                                      PREV_COORDS=prev_coords)
 
         print("data len(DIRECTIONS) == 1 at:", [X, Y], directions_testing, points_testing, PREV, opp[PREV] if PREV is not None else "None")
 
@@ -3570,7 +3652,7 @@ def mainFunction2(X, Y, PREV, DIRECTIONS, POINT_NEXT=None):
                 print("len(directions_testing) > 1 some error occurred in dirLR at:", [X, Y], directions_testing)
 
             elif len(directions_testing) == 1:
-                mainFunction2(points_testing[0][0], points_testing[0][1], DIRECTIONS[0], [directions_testing[0]])
+                mainFunction2(points_testing[0][0], points_testing[0][1], DIRECTIONS[0], [directions_testing[0]], prev_coords=[X, Y])
 
             else:
                 print("len(directions_testing) == 0 some error occurred in dirLR at:", [X, Y])
@@ -3591,13 +3673,15 @@ def mainFunction2(X, Y, PREV, DIRECTIONS, POINT_NEXT=None):
 
                     print("data before applying dirLR_β at:", [X_Temp, Y_Temp], [X1, Y1], directions[i])
 
-                    # beta_bar_testing, angle_testing, directions_testing, points_testing = dirLR(image_final, X_Temp, Y_Temp, 13, 100, directions[i])
-                    beta_bar_testing, angle_testing, directions_testing, points_testing = dirLR_β(image_final, X_Temp, Y_Temp, 27, 100, directions[i])
+                    # beta_bar_testing, angle_testing, directions_testing, points_testing = \
+                    #     dirLR(image_final, X_Temp, Y_Temp, 13, 100, directions[i])
+                    beta_bar_testing, angle_testing, directions_testing, points_testing = \
+                        dirLR_β(image_final, X_Temp, Y_Temp, 27, 100, directions[i], PREV_COORDS=prev_coords)
 
                     print("data inside for loop at:", [X_Temp, Y_Temp], [X, Y], directions_testing, points_testing, directions[i],
                           opp[directions[i]] if directions[i] is not None else "None")
 
-                    mainFunction2(X_Temp, Y_Temp, directions[i], [directions_testing[0]])
+                    mainFunction2(X_Temp, Y_Temp, directions[i], [directions_testing[0]], prev_coords=[X, Y])
 
                 except Exception as e:
                     print("some error occurred at:", points_testing, [X1, Y1], e)
@@ -3640,7 +3724,7 @@ print("before starting:", [XO, YO], [X1, Y1], directions, direction_testing, poi
 
 # mainFunction2(X1, Y1, None, directions, point_testing)
 start2 = timer()
-mainFunction2(X1, Y1, None, direction_testing, point_testing)
+mainFunction2(X1, Y1, None, direction_testing, POINT_NEXT=point_testing, prev_coords=None)
 end2 = timer()
 print("time taken for mainFunction2:", end2 - start2)
 
@@ -3658,6 +3742,11 @@ print("time taken for mainFunction2:", end2 - start2)
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 500, 265, 27, 100, "NW")
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 521, 183, 27, 100, "NE")
 
+# beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 748, 236, 27, 100, "SE")
+# beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 749, 268, 27, 100, "S")
+# beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 748, 271, 27, 100, "SW")
+# beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 521, 183, 27, 100, "NE")
+
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR_β(image_final, 502, 237, 27, 100, "NE")
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR(image_final, 502, 237, 13, 100, None)
 
@@ -3668,6 +3757,8 @@ print("time taken for mainFunction2:", end2 - start2)
 # print("custom data:", find_max_perp([566, 144], -0.40851619644276577, image_final, 100))
 # print("custom data:", find_max_perp([631, 380], -0.10198771317350785, image_final, 100))
 # print("custom data:", find_max_perp([568, 144], -0.5290962998716804, image_final, 100))
+# print("custom data:", find_max_perp([747, 257], -1.8715019555877688, image_final, 100))
+print("custom data:", find_max_perp([725, 323], -0.9664187145904831, image_final, 100))
 
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR(image_final, 507, 210, 13, 100, None)
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR(image_final, 511, 205, 13, 100, None)
@@ -3686,8 +3777,7 @@ print("time taken for mainFunction2:", end2 - start2)
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR(image_final, 502, 225, 27, 127, None)
 # beta_bar_testing, angle_testing, direction_testing, point_testing = dirLR(image_final, 503, 232, 27, 127, None)
 
-# print("custom starting:", [566, 144], direction_testing, point_testing)
-
+# print("custom starting:", [747, 257], direction_testing, point_testing)
 
 
 
