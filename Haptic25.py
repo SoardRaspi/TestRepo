@@ -29,7 +29,8 @@ perp = {"N": "E", "NE": "SE", "E": "S", "SE": "SW", "S": "E", "SW": "SE", "W": "
 basic = ["N", "E", "S", "W"]
 juncs = {}
 
-ANS = {}
+# ANS = {}
+traversed = {}
 
 resolution = 1  # decides the resolution with which the hand movements will happen unless interrupted by direction change
 intensity_threshold = 127
@@ -2308,7 +2309,9 @@ def get_dirs_from_coords(_, __, ___, X, Y, PREV):
 
         pt = find_max_perp(
             end_dir_coords[dir_key][0], ((end_dir_coords[dir_key][1] / end_dir_coords[dir_key][2])
-                                         if end_dir_coords[dir_key][2] != 0.0 else 10e5), image_final, 100)
+                                         if end_dir_coords[dir_key][2] != 0.0 else ((-1) * 10e5)), image_final, 100)
+
+        print("data before specific:", end_dir_coords, pt, dir_key)
 
         end_dir_coords_tt_intersection[dir_key] = dirLR_β(image_final, pt[0], pt[1], 27, 100,
                                                           dir_key, PREV_COORDS=[X, Y], IGNORE_HARRIS=True)[-1][0]
@@ -2490,7 +2493,7 @@ def get_dirs_from_coords(_, __, ___, X, Y, PREV):
 #     return X_, Y_
 #     # return X_, Y_, max_ratio_match
 
-def find_max_perp(point, beta_bar, img_f, limit):
+def find_max_perp(point, beta_bar, img_f, limit, length=13):
     # _, __, ___, X1, Y1 = grapher_3D(13, img_f, point[0], point[1])
     # return [X1, Y1]
 
@@ -2506,22 +2509,22 @@ def find_max_perp(point, beta_bar, img_f, limit):
 
     range_of_points = []
 
-    while img_f[yc][l_xc - 1] < limit:
+    while (img_f[yc][l_xc - 1] < limit) and (abs(xc - l_xc + 2) <= length):
         l_xc -= 1
 
-    while img_f[yc][u_xc + 1] < limit:
+    while (img_f[yc][u_xc + 1] < limit) and (abs(u_xc - xc + 2) <= length):
         u_xc += 1
 
-    while img_f[l_yc - 1][l_xc] < limit:
+    while (img_f[l_yc - 1][l_xc] < limit) and (abs(yc - l_yc + 2) <= length):
         l_yc -= 1
 
-    while img_f[u_yc + 1][l_xc] < limit:
+    while (img_f[u_yc + 1][l_xc] < limit) and (abs(u_yc - yc + 2) <= length):
         u_yc += 1
 
-    while img_f[l_yc_d - 1][u_xc] < limit:
+    while (img_f[l_yc_d - 1][u_xc] < limit) and (abs(yc - l_yc_d + 2) <= length):
         l_yc_d -= 1
 
-    while img_f[u_yc_d + 1][u_xc] < limit:
+    while (img_f[u_yc_d + 1][u_xc] < limit) and (abs(u_yc_d - yc + 2) <= length):
         u_yc_d += 1
 
     for y in range(l_yc, u_yc + 1):
@@ -2544,6 +2547,9 @@ def find_max_perp(point, beta_bar, img_f, limit):
     if beta_bar == 0:
         beta_perp = "inf"
 
+    elif beta_bar == 0.0:
+        beta_perp = "inf"
+
     else:
         beta_perp = (-1) / beta_bar
 
@@ -2553,7 +2559,7 @@ def find_max_perp(point, beta_bar, img_f, limit):
         if ((y_final == np.floor(y_perp)) or (y_final == np.ceil(y_perp))) and img_f[y_final][x_perp] < limit:
             possible.append([x_perp, y_final])
 
-    # print("all data from find_max_perp:", u_xc, l_xc, u_yc, l_yc, "possible:", possible)
+    print("all data from find_max_perp:", u_xc, l_xc, u_yc, l_yc, "possible:", possible)
 
     median_from_possible = None
 
@@ -4144,9 +4150,9 @@ def mainFunction2(X, Y, PREV, DIRECTIONS, POINT_NEXT=None, prev_coords=None):
 
     print(Fore.GREEN + "ans_ans_ans:", [X, Y], PREV, DIRECTIONS, Style.RESET_ALL)
 
-    temp_str = str(X) + ", " + str(Y)
+    # temp_str = str(X) + ", " + str(Y)
 
-    ANS[temp_str] = DIRECTIONS
+    # ANS[temp_str] = DIRECTIONS
 
     if len(DIRECTIONS) == 0:
         flag_terminal_coord = False
